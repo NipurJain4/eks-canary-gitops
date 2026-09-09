@@ -1,0 +1,8 @@
+# This directory is populated automatically by `flux bootstrap github ...`.
+# It will contain:
+#   - gotk-components.yaml  (Flux controllers)
+#   - gotk-sync.yaml        (GitRepository + root Kustomization pointing here)
+#   - kustomization.yaml
+#
+# Do NOT hand-edit these files. They are managed by the Flux CLI.
+# See the repo README for the exact bootstrap command.

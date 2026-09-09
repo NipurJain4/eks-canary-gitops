@@ -1,0 +1,79 @@
+# Flagger Canary: the heart of the demo.
+# When the podinfo Deployment's image changes, Flagger:
+#   1. scales up a "canary" copy,
+#   2. shifts a small % of ingress traffic to it (stepWeight),
+#   3. checks metrics (success rate + latency) each interval,
+#   4. promotes gradually to 100% if healthy, or rolls back automatically if not.
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: podinfo
+  namespace: podinfo
+spec:
+  # Flagger provisions its own ingress; this references the class to use.
+  provider: nginx
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: podinfo
+  autoscalerRef:
+    apiVersion: autoscaling/v2
+    kind: HorizontalPodAutoscaler
+    name: podinfo
+  # Flagger creates and manages this ingress for canary traffic routing.
+  ingressRef:
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    name: podinfo
+  service:
+    port: 80
+    targetPort: 9898
+  analysis:
+    # How often to evaluate the canary.
+    interval: 30s
+    # Max failed metric checks before rolling back.
+    threshold: 5
+    # Max traffic percentage routed to the canary.
+    maxWeight: 50
+    # Traffic increment per successful step.
+    stepWeight: 10
+    metrics:
+      - name: request-success-rate
+        # Minimum % of non-5xx responses to be considered healthy.
+        thresholdRange:
+          min: 99
+        interval: 1m
+      - name: request-duration
+        # Max p99 latency in milliseconds.
+        thresholdRange:
+          max: 500
+        interval: 1m
+    # Generate load during analysis so metrics have real traffic to measure.
+    webhooks:
+      - name: load-test
+        url: http://flagger-loadtester.flagger-system/
+        timeout: 5s
+        metadata:
+          cmd: "hey -z 1m -q 10 -c 2 http://podinfo-canary.podinfo:80/"
+---
+# Flagger needs an Ingress object to take over. This is the "template" it manages.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: podinfo
+  namespace: podinfo
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: podinfo.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: podinfo
+                port:
+                  number: 80
