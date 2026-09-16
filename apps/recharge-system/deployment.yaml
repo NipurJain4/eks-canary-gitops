@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: recharge-system
+  namespace: recharge-system
+  labels:
+    app: recharge-system
+spec:
+  minReadySeconds: 5
+  revisionHistoryLimit: 5
+  progressDeadlineSeconds: 120
+  # Flagger manages the replica count on the primary deployment,
+  # so we do not set spec.replicas here.
+  selector:
+    matchLabels:
+      app: recharge-system
+  template:
+    metadata:
+      labels:
+        app: recharge-system
+    spec:
+      containers:
+        - name: recharge-system
+          # Bump this tag to trigger a canary rollout (Jenkins will automate this later).
+          image: 821410798987.dkr.ecr.ap-south-1.amazonaws.com/podinfo:recharge-v1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi

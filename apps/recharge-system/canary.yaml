@@ -1,0 +1,66 @@
+# Flagger Canary for the recharge-system static site.
+# When the Deployment's image changes, Flagger shifts traffic gradually
+# (10% steps to 50%), checks success-rate + latency, then promotes or rolls back.
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: recharge-system
+  namespace: recharge-system
+spec:
+  provider: nginx
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: recharge-system
+  autoscalerRef:
+    apiVersion: autoscaling/v2
+    kind: HorizontalPodAutoscaler
+    name: recharge-system
+  ingressRef:
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    name: recharge-system
+  service:
+    port: 80
+    targetPort: 80
+  analysis:
+    interval: 30s
+    threshold: 5
+    maxWeight: 50
+    stepWeight: 10
+    metrics:
+      - name: request-success-rate
+        thresholdRange:
+          min: 99
+        interval: 1m
+      - name: request-duration
+        thresholdRange:
+          max: 500
+        interval: 1m
+    webhooks:
+      - name: load-test
+        url: http://flagger-loadtester.flagger-system/
+        timeout: 5s
+        metadata:
+          cmd: "hey -z 1m -q 10 -c 2 http://recharge-system-canary.recharge-system/"
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: recharge-system
+  namespace: recharge-system
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: recharge.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: recharge-system
+                port:
+                  number: 80
