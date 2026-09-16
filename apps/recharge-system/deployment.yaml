@@ -22,7 +22,7 @@ spec:
       containers:
         - name: recharge-system
           # Bump this tag to trigger a canary rollout (Jenkins will automate this later).
-          image: 821410798987.dkr.ecr.ap-south-1.amazonaws.com/podinfo:recharge-v1.0.0
+          image: 821410798987.dkr.ecr.ap-south-1.amazonaws.com/podinfo:recharge-v2.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
