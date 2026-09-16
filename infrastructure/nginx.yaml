@@ -29,6 +29,9 @@ spec:
         type: LoadBalancer
         annotations:
           service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+          # Make the NLB internet-facing (default without this can be internal/unreachable).
+          service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+          service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
       # Flagger scrapes NGINX Prometheus metrics to analyze the canary.
       metrics:
         enabled: true
