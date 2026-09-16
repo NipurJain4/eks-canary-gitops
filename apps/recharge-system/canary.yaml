@@ -42,7 +42,10 @@ spec:
         url: http://flagger-loadtester.flagger-system/
         timeout: 5s
         metadata:
-          cmd: "hey -z 1m -q 10 -c 2 http://recharge-system-canary.recharge-system/"
+          # Send load THROUGH the nginx ingress controller (with Host header) so
+          # NGINX records request metrics that Flagger queries. Hitting the canary
+          # service directly would bypass nginx and produce "no values found".
+          cmd: "hey -z 2m -q 10 -c 2 -host recharge.example.com http://ingress-nginx-controller.ingress-nginx/"
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -54,9 +57,11 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    # No host restriction: responds to any hostname (e.g. the raw NLB URL),
-    # so the app is directly reachable in a browser for this demo.
-    - http:
+    # Host required by Flagger's nginx canary analysis (metrics + traffic split).
+    # Browser access still works via the NLB by sending this Host header,
+    # or add it to /etc/hosts. (Flagger needs a host to manage the canary ingress.)
+    - host: recharge.example.com
+      http:
         paths:
           - path: /
             pathType: Prefix
