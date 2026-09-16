@@ -54,8 +54,9 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: recharge.example.com
-      http:
+    # No host restriction: responds to any hostname (e.g. the raw NLB URL),
+    # so the app is directly reachable in a browser for this demo.
+    - http:
         paths:
           - path: /
             pathType: Prefix
