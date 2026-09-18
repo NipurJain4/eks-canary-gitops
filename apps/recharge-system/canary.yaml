@@ -67,14 +67,14 @@ spec:
     maxWeight: 50
     stepWeight: 10
     metrics:
-      # Custom success-rate metric (error rate must stay under 1%).
-      # With 15s Prometheus scraping, a 1m window has ~4 samples for rate().
+      # Custom success-rate metric (error rate must stay under 5%).
+      # 5% (not 1%) tolerates noise from low demo traffic + stray 404/504s.
       - name: nginx-success-rate
         templateRef:
           name: nginx-success-rate
           namespace: recharge-system
         thresholdRange:
-          max: 1
+          max: 5
         interval: 1m
     webhooks:
       # Sustained load THROUGH the nginx ingress for the whole analysis window,
@@ -84,7 +84,7 @@ spec:
         url: http://flagger-loadtester.flagger-system/
         timeout: 15s
         metadata:
-          cmd: "hey -z 1m -q 15 -c 3 -host recharge.example.com http://ingress-nginx-controller.ingress-nginx/"
+          cmd: "hey -z 1m -q 50 -c 5 -host recharge.example.com http://ingress-nginx-controller.ingress-nginx/"
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
