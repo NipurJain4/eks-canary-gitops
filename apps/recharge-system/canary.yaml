@@ -57,11 +57,10 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    # Host required by Flagger's nginx canary analysis (metrics + traffic split).
-    # Browser access still works via the NLB by sending this Host header,
-    # or add it to /etc/hosts. (Flagger needs a host to manage the canary ingress.)
-    - host: recharge.example.com
-      http:
+    # No host: responds to any hostname, so the app is directly reachable
+    # in a browser via the raw NLB DNS. (Re-add a host to run the Flagger
+    # nginx canary analysis.)
+    - http:
         paths:
           - path: /
             pathType: Prefix
