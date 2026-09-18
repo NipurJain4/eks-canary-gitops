@@ -20,8 +20,14 @@ spec:
         name: prometheus-community
         namespace: flux-system
   values:
-    # Trim to a single lightweight server for the POC.
+    # Scrape every 15s (default is 1m). Dense samples make rate() over short
+    # windows reliable for Flagger canary analysis. Root cause of earlier
+    # "no values found": 1m scrape + 1m rate window = only 1 sample.
     server:
+      global:
+        scrape_interval: 15s
+        scrape_timeout: 10s
+        evaluation_interval: 15s
       persistentVolume:
         enabled: false
       resources:
