@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: jenkins
+---
+# Jenkins installed in-cluster via Flux.
+# Builds run in agent pods using Kaniko (no Docker daemon needed). Image push
+# to ECR uses the NODE role credentials (already SCP-excluded), so NO IRSA and
+# NO stored AWS keys are needed — nothing to expire.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: jenkins
+  namespace: jenkins
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: jenkins
+      version: "5.x"
+      sourceRef:
+        kind: HelmRepository
+        name: jenkins
+        namespace: flux-system
+  values:
+    controller:
+      # Modest resources for the lab.
+      resources:
+        requests:
+          cpu: 250m
+          memory: 512Mi
+        limits:
+          cpu: "1"
+          memory: 1Gi
+      # Expose the UI via the nginx ingress (add /etc/hosts jenkins.example.com).
+      ingress:
+        enabled: true
+        ingressClassName: nginx
+        hostName: jenkins.example.com
+      # Install the plugins the pipeline needs.
+      installPlugins:
+        - kubernetes:latest
+        - workflow-aggregator:latest
+        - git:latest
+        - configuration-as-code:latest
+        - pipeline-stage-view:latest
+    # Agents (build pods) run in this namespace.
+    agent:
+      enabled: true
+      namespace: jenkins
+    # Persistence for Jenkins home.
+    persistence:
+      enabled: true
+      size: 8Gi
+    # Service account for Jenkins agents. NO IRSA annotation on purpose:
+    # agent pods inherit the NODE role (which has ECR push + is SCP-excluded).
+    serviceAccount:
+      create: true
+      name: jenkins
+    serviceAccountAgent:
+      create: true
+      name: jenkins-agent

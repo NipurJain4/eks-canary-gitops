@@ -5,3 +5,4 @@ resources:
   - deployment.yaml
   - hpa.yaml
   - canary.yaml
+  - traffic-generator.yaml

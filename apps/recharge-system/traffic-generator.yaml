@@ -1,0 +1,44 @@
+# Always-on traffic generator.
+# Continuously sends requests THROUGH the nginx ingress (with the app's Host
+# header) so Prometheus always has fresh nginx_ingress_controller_requests data.
+# This keeps Flagger's success-rate metric stable (near 0% error) during canary
+# analysis, so a healthy version promotes instead of failing on "no values".
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traffic-generator
+  namespace: recharge-system
+  labels:
+    app: traffic-generator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: traffic-generator
+  template:
+    metadata:
+      labels:
+        app: traffic-generator
+    spec:
+      containers:
+        - name: curl
+          image: curlimages/curl:8.10.1
+          resources:
+            requests:
+              cpu: 20m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 32Mi
+          command:
+            - /bin/sh
+            - -c
+            - |
+              # Constant steady traffic through the ingress controller,
+              # with the app Host header, ~5 requests/second, forever.
+              while true; do
+                curl -s -o /dev/null \
+                  -H "Host: recharge.example.com" \
+                  http://ingress-nginx-controller.ingress-nginx/ || true
+                sleep 0.2
+              done

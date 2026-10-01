@@ -77,14 +77,16 @@ spec:
           max: 5
         interval: 1m
     webhooks:
-      # Sustained load THROUGH the nginx ingress for the whole analysis window,
-      # so the success-rate query always has data. Runs on each interval.
+      # Continuous high load THROUGH the nginx ingress for the FULL analysis
+      # window (no gaps), so the success-rate query always has fresh data.
+      # -z 5m covers the whole rollout; high -q/-c keeps 200s dominating so
+      # brief stray 404/504s don't spike the error rate.
       - name: load-test
         type: rollout
         url: http://flagger-loadtester.flagger-system/
-        timeout: 15s
+        timeout: 30s
         metadata:
-          cmd: "hey -z 1m -q 50 -c 5 -host recharge.example.com http://ingress-nginx-controller.ingress-nginx/"
+          cmd: "hey -z 5m -q 50 -c 10 -host recharge.example.com http://ingress-nginx-controller.ingress-nginx/"
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress

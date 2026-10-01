@@ -5,3 +5,4 @@ resources:
   - nginx.yaml
   - flagger.yaml
   - loadtester.yaml
+  - jenkins.yaml
