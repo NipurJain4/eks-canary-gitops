@@ -32,11 +32,11 @@ spec:
         limits:
           cpu: "1"
           memory: 1Gi
-      # Expose the UI via the nginx ingress (add /etc/hosts jenkins.example.com).
+      # Ingress disabled: the AWS LB Controller webhook validates ALL ingresses
+      # and rejected this one on rebuild (nginx IngressClass not yet registered).
+      # Access Jenkins via: kubectl port-forward -n jenkins svc/jenkins 8080:8080
       ingress:
-        enabled: true
-        ingressClassName: nginx
-        hostName: jenkins.example.com
+        enabled: false
       # Install the plugins the pipeline needs.
       installPlugins:
         - kubernetes:latest

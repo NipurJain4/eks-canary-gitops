@@ -1,0 +1,15 @@
+# Default gp3 StorageClass using the EBS CSI driver.
+# EKS 1.34+ removed the in-tree aws-ebs provisioner, so the pre-existing gp2
+# class can't provision volumes. This gp3 class (CSI-based) becomes the default
+# so PVCs (e.g., Jenkins) bind correctly. Managed by GitOps so it survives rebuilds.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+parameters:
+  type: gp3
