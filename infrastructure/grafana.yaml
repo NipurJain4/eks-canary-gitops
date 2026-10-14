@@ -1,0 +1,63 @@
+# Grafana for visualising the Flagger canary rollout.
+# Reads the existing flagger Prometheus as its datasource and auto-loads the
+# official Flagger canary dashboard (Grafana.com dashboard ID 9657), which shows
+# canary traffic weight, success rate, latency and request volume (primary vs
+# canary) live during a rollout.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: grafana
+  namespace: flagger-system
+spec:
+  interval: 30m
+  chart:
+    spec:
+      chart: grafana
+      version: "8.x"
+      sourceRef:
+        kind: HelmRepository
+        name: grafana
+        namespace: flux-system
+  values:
+    # Fixed admin login for the lab (change for anything real).
+    adminUser: admin
+    adminPassword: canary-admin
+    # No persistence needed; dashboards are provisioned from config below.
+    persistence:
+      enabled: false
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 300m
+        memory: 256Mi
+    # Point Grafana at the in-cluster Prometheus (flagger's).
+    datasources:
+      datasources.yaml:
+        apiVersion: 1
+        datasources:
+          - name: prometheus
+            type: prometheus
+            access: proxy
+            url: http://flagger-prometheus-server.flagger-system:80
+            isDefault: true
+    # Auto-load the Flagger canary dashboard from Grafana.com (ID 9657).
+    dashboardProviders:
+      dashboardproviders.yaml:
+        apiVersion: 1
+        providers:
+          - name: flagger
+            orgId: 1
+            folder: Flagger
+            type: file
+            disableDeletion: false
+            editable: true
+            options:
+              path: /var/lib/grafana/dashboards/flagger
+    dashboards:
+      flagger:
+        canary:
+          gnetId: 9657
+          revision: 1
+          datasource: prometheus
