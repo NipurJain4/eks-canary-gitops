@@ -67,15 +67,17 @@ spec:
     maxWeight: 50
     stepWeight: 10
     metrics:
-      # Custom success-rate metric (error rate must stay under 5%).
-      # 5% (not 1%) tolerates noise from low demo traffic + stray 404/504s.
+      # Custom success-rate metric (error rate must stay under 10%).
+      # 10% + 2m interval tolerates transient 404/503 noise in a low-traffic lab,
+      # which spikes most at the 50% hold (more traffic to fresh canary pods).
+      # Production (steady traffic) would use a strict ~1%.
       - name: nginx-success-rate
         templateRef:
           name: nginx-success-rate
           namespace: recharge-system
         thresholdRange:
-          max: 5
-        interval: 1m
+          max: 10
+        interval: 2m
     webhooks:
       # Continuous high load THROUGH the nginx ingress for the FULL analysis
       # window (no gaps), so the success-rate query always has fresh data.

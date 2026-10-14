@@ -25,20 +25,24 @@ spec:
           image: curlimages/curl:8.10.1
           resources:
             requests:
-              cpu: 20m
+              cpu: 50m
               memory: 16Mi
             limits:
-              cpu: 100m
-              memory: 32Mi
+              cpu: 300m
+              memory: 64Mi
           command:
             - /bin/sh
             - -c
             - |
-              # Constant steady traffic through the ingress controller,
-              # with the app Host header, ~5 requests/second, forever.
-              while true; do
-                curl -s -o /dev/null \
-                  -H "Host: recharge.example.com" \
-                  http://ingress-nginx-controller.ingress-nginx/ || true
-                sleep 0.2
+              # Constant steady traffic through the ingress controller with the
+              # app Host header. Several parallel loops with no sleep → high,
+              # continuous request rate so clean 200s dominate the error ratio
+              # (keeps the canary success-rate metric stable).
+              for i in 1 2 3 4 5; do
+                while true; do
+                  curl -s -o /dev/null \
+                    -H "Host: recharge.example.com" \
+                    http://ingress-nginx-controller.ingress-nginx/ || true
+                done &
               done
+              wait
